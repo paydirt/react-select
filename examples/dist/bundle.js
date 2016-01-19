@@ -512,6 +512,7 @@ var Select = _react2['default'].createClass({
 
 		// If anything changes the way results are displayed, update them.
 		if (nextProps.options !== this.props.options || nextProps.filterOptions !== this.props.filterOptions || nextProps.ignoreAccents !== this.props.ignoreAccents || nextProps.ignoreCase !== this.props.ignoreCase || nextProps.matchProps !== this.props.matchProps || nextProps.multi !== this.props.multi) {
+			console.log('nextProps.options       !== this.props.options', nextProps.options !== this.props.options, 'nextProps.filterOptions !== this.props.filterOptions', nextProps.filterOptions !== this.props.filterOptions, 'nextProps.ignoreAccents !== this.props.ignoreAccents', nextProps.ignoreAccents !== this.props.ignoreAccents, 'nextProps.ignoreCase    !== this.props.ignoreCase', nextProps.ignoreCase !== this.props.ignoreCase, 'nextProps.matchProps    !== this.props.matchProps', nextProps.matchProps !== this.props.matchProps, 'nextProps.multi         !== this.props.multi', nextProps.multi !== this.props.multi);
 			var inputValue = this.state.inputValue;
 
 			this.setState({
