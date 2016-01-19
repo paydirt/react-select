@@ -158,6 +158,7 @@ const Select = React.createClass({
 		if (prevProps.disabled !== this.props.disabled) {
 			this.setState({ isFocused: false });
 		}
+		this.checkScrolledToBottom();
 	},
 
 	focus () {
@@ -313,6 +314,10 @@ const Select = React.createClass({
 	},
 
 	handleMenuScroll (event) {
+		this.checkScrolledToBottom();
+	},
+
+	checkScrolledToBottom () {
 		if (!this.props.onMenuScrollToBottom) return;
 		let { target } = event;
 		if (target.scrollHeight > target.offsetHeight && !(target.scrollHeight - target.offsetHeight - target.scrollTop)) {

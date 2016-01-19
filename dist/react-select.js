@@ -335,6 +335,7 @@ var Select = _react2['default'].createClass({
 		newOptionCreator: _react2['default'].PropTypes.func, // factory to create new options when allowCreate set
 		noResultsText: _react2['default'].PropTypes.oneOfType([_react2['default'].PropTypes.string, _react2['default'].PropTypes.node]), // placeholder displayed when there are no matching search results
 		onBlur: _react2['default'].PropTypes.func, // onBlur handler: function (event) {}
+		onBlurResetsInput: _react2['default'].PropTypes.bool, // whether input is cleared on blur
 		onChange: _react2['default'].PropTypes.func, // onChange handler: function (newValue) {}
 		onFocus: _react2['default'].PropTypes.func, // onFocus handler: function (event) {}
 		onInputChange: _react2['default'].PropTypes.func, // onInputChange handler: function (inputValue) {}
@@ -378,6 +379,7 @@ var Select = _react2['default'].createClass({
 			menuBuffer: 0,
 			multi: false,
 			noResultsText: 'No results found',
+			onBlurResetsInput: true,
 			optionComponent: _Option2['default'],
 			placeholder: 'Select...',
 			searchable: true,
@@ -426,6 +428,7 @@ var Select = _react2['default'].createClass({
 		if (prevProps.disabled !== this.props.disabled) {
 			this.setState({ isFocused: false });
 		}
+		this.checkScrolledToBottom();
 	},
 
 	focus: function focus() {
@@ -510,12 +513,15 @@ var Select = _react2['default'].createClass({
 		if (this.props.onBlur) {
 			this.props.onBlur(event);
 		}
-		this.setState({
-			inputValue: '',
+		var onBlurredState = {
 			isFocused: false,
 			isOpen: false,
 			isPseudoFocused: false
-		});
+		};
+		if (this.props.onBlurResetsInput) {
+			onBlurredState.inputValue = '';
+		}
+		this.setState(onBlurredState);
 	},
 
 	handleInputChange: function handleInputChange(event) {
@@ -585,6 +591,10 @@ var Select = _react2['default'].createClass({
 	},
 
 	handleMenuScroll: function handleMenuScroll(event) {
+		this.checkScrolledToBottom();
+	},
+
+	checkScrolledToBottom: function checkScrolledToBottom() {
 		if (!this.props.onMenuScrollToBottom) return;
 		var target = event.target;
 
