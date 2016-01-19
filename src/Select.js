@@ -245,8 +245,8 @@ const Select = React.createClass({
 		this.setState({
 			isOpen: false,
 			isPseudoFocused: this.state.isFocused && !this.props.multi,
-			inputValue: '',
 		});
+		this.setInputValue('');
 	},
 
 	handleInputFocus (event) {
@@ -469,9 +469,9 @@ const Select = React.createClass({
 		if (!isOpen) {
 			this.setState({
 				isOpen: true,
-				inputValue: '',
 				focusedOption: this._focusedOption || options[dir === 'next' ? 0 : options.length - 1]
 			});
+			this.setInputValue('');
 			return;
 		}
 		if (!options.length) return;
@@ -564,6 +564,8 @@ const Select = React.createClass({
 					style={{ border: 0, width: 1, display:'inline-block' }}/>
 			);
 		}
+		console.log('just about to render input', this);
+		console.log('this.state.inputValue.replace', this.state.inputValue.replace);
 		return (
 			<Input
 				{...this.props.inputProps}

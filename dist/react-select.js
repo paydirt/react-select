@@ -509,9 +509,9 @@ var Select = _react2['default'].createClass({
 	closeMenu: function closeMenu() {
 		this.setState({
 			isOpen: false,
-			isPseudoFocused: this.state.isFocused && !this.props.multi,
-			inputValue: ''
+			isPseudoFocused: this.state.isFocused && !this.props.multi
 		});
+		this.setInputValue('');
 	},
 
 	handleInputFocus: function handleInputFocus(event) {
@@ -761,9 +761,9 @@ var Select = _react2['default'].createClass({
 		if (!isOpen) {
 			this.setState({
 				isOpen: true,
-				inputValue: '',
 				focusedOption: this._focusedOption || options[dir === 'next' ? 0 : options.length - 1]
 			});
+			this.setInputValue('');
 			return;
 		}
 		if (!options.length) return;
@@ -859,6 +859,8 @@ var Select = _react2['default'].createClass({
 				ref: 'input',
 				style: { border: 0, width: 1, display: 'inline-block' } }));
 		}
+		console.log('just about to render input', this);
+		console.log('this.state.inputValue.replace', this.state.inputValue.replace);
 		return _react2['default'].createElement(_reactInputAutosize2['default'], _extends({}, this.props.inputProps, {
 			className: className,
 			tabIndex: this.props.tabIndex,
