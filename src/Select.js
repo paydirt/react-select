@@ -105,13 +105,14 @@ const Select = React.createClass({
 			labelKey: 'label',
 			matchPos: 'any',
 			matchProp: 'any',
-			scrollMenuIntoView: true,
 			menuBuffer: 0,
 			multi: false,
 			noResultsText: 'No results found',
 			onBlurResetsInput: true,
 			optionComponent: Option,
+			options: [],
 			placeholder: 'Select...',
+			scrollMenuIntoView: true,
 			searchable: true,
 			simpleValue: false,
 			valueComponent: Value,
@@ -135,10 +136,32 @@ const Select = React.createClass({
 		}
 	},
 
-	componentDidUpdate (prevProps, prevState) {
-		if (prevState.inputValue !== this.state.inputValue && this.props.onInputChange) {
-			this.props.onInputChange(this.state.inputValue);
+	componentWillReceiveProps (nextProps) {
+
+		// If value has changed, then update the stored `valueArray`.
+		let { valueArray } = this.state;
+		if (nextProps.value !== this.props.value) {
+			valueArray = this.getValueArray();
+			this.setState({ valueArray });
 		}
+
+		// If anything changes the way results are displayed, update them.
+		if (
+			nextProps.options       !== this.props.options       ||
+			nextProps.filterOptions !== this.props.filterOptions ||
+			nextProps.ignoreAccents !== this.props.ignoreAccents ||
+			nextProps.ignoreCase    !== this.props.ignoreCase    ||
+			nextProps.matchProps    !== this.props.matchProps    ||
+			nextProps.multi         !== this.props.multi
+		) {
+			const { inputValue } = state;
+			this.setState({
+				visibleOptions: this.filterOptions(valueArray, this.state.inputValue, nextProps)
+			});
+		}
+	},
+
+	componentDidUpdate (prevProps, prevState) {
 		if (this._scrollToFocusedOptionOnUpdate && this.refs.focused && this.refs.menu) {
 			this._scrollToFocusedOptionOnUpdate = false;
 			var focusedDOM = ReactDOM.findDOMNode(this.refs.focused);
@@ -257,9 +280,19 @@ const Select = React.createClass({
 	handleInputChange (event) {
 		this.setState({
 			isOpen: true,
-			isPseudoFocused: false,
-			inputValue: event.target.value,
+			isPseudoFocused: false
 		});
+		this.setInputValue(event.target.value);
+	},
+
+	setInputValue (value) {
+		if (this.state.value !== value) {
+			this.props.onInputChange(this.state.inputValue);
+			this.setState({
+				inputValue: value,
+				visibleJobs: this.filterOptions(this.state.valueArray, value, this.props)
+			});
+		}
 	},
 
 	handleKeyDown (event) {
@@ -331,16 +364,23 @@ const Select = React.createClass({
 	},
 
 	getValueArray () {
-		let value = this.props.value;
-		if (this.props.multi) {
-			if (typeof value === 'string') value = value.split(this.props.delimiter);
-			if (!Array.isArray(value)) {
-				if (value === null || value === undefined) return [];
-				value = [value];
-			}
-			return value.map(this.expandValue).filter(i => i);
+		const { value, delimeter, multi } = this.props;
+
+		if (value == null) {
+			return [];
 		}
-		var expandedValue = this.expandValue(value);
+
+		if (multi) {
+			let values = null;
+			if (typeof value === 'string') {
+				values = value.split(delimeter);
+			} else if (!Array.isArray(value)) {
+				values = [value];
+			}
+			return values.map(this.expandValue).filter(i => i);
+		}
+
+		const expandedValue = this.expandValue(value);
 		return expandedValue ? [expandedValue] : [];
 	},
 
@@ -364,17 +404,14 @@ const Select = React.createClass({
 	selectValue (value) {
 		if (this.props.multi) {
 			this.addValue(value);
-			this.setState({
-				inputValue: '',
-			});
 		} else {
 			this.setValue(value);
 			this.setState({
 				isOpen: false,
-				inputValue: '',
 				isPseudoFocused: this.state.isFocused,
 			});
 		}
+		this.setInputValue(value);
 	},
 
 	addValue (value) {
@@ -404,10 +441,8 @@ const Select = React.createClass({
 		event.stopPropagation();
 		event.preventDefault();
 		this.setValue(null);
-		this.setState({
-			isOpen: false,
-			inputValue: '',
-		}, this.focus);
+		this.setInputValue('');
+		this.setState({ isOpen: false, }, this.focus);
 	},
 
 	focusOption (option) {
@@ -425,9 +460,10 @@ const Select = React.createClass({
 	},
 
 	focusAdjacentOption (dir) {
-		var options = this._visibleOptions.filter(i => !i.disabled);
+		const { isOpen, visibleOptions } = this.state;
+		var options = visibleOptions.filter(i => !i.disabled);
 		this._scrollToFocusedOptionOnUpdate = true;
-		if (!this.state.isOpen) {
+		if (!isOpen) {
 			this.setState({
 				isOpen: true,
 				inputValue: '',
@@ -557,44 +593,47 @@ const Select = React.createClass({
 		);
 	},
 
-	filterOptions (excludeOptions) {
-		var filterValue = this.state.inputValue;
-		var options = this.props.options || [];
-		if (typeof this.props.filterOptions === 'function') {
-			return this.props.filterOptions.call(this, options, filterValue, excludeOptions);
-		} else if (this.props.filterOptions) {
-			if (this.props.ignoreAccents) {
-				filterValue = stripDiacritics(filterValue);
-			}
-			if (this.props.ignoreCase) {
-				filterValue = filterValue.toLowerCase();
-			}
-			if (excludeOptions) excludeOptions = excludeOptions.map(i => i[this.props.valueKey]);
-			return options.filter(option => {
-				if (excludeOptions && excludeOptions.indexOf(option[this.props.valueKey]) > -1) return false;
-				if (this.props.filterOption) return this.props.filterOption.call(this, option, filterValue);
-				if (!filterValue) return true;
-				var valueTest = String(option[this.props.valueKey]);
-				var labelTest = String(option[this.props.labelKey]);
-				if (this.props.ignoreAccents) {
-					if (this.props.matchProp !== 'label') valueTest = stripDiacritics(valueTest);
-					if (this.props.matchProp !== 'value') labelTest = stripDiacritics(labelTest);
-				}
-				if (this.props.ignoreCase) {
-					if (this.props.matchProp !== 'label') valueTest = valueTest.toLowerCase();
-					if (this.props.matchProp !== 'value') labelTest = labelTest.toLowerCase();
-				}
-				return this.props.matchPos === 'start' ? (
-					(this.props.matchProp !== 'label' && valueTest.substr(0, filterValue.length) === filterValue) ||
-					(this.props.matchProp !== 'value' && labelTest.substr(0, filterValue.length) === filterValue)
-				) : (
-					(this.props.matchProp !== 'label' && valueTest.indexOf(filterValue) >= 0) ||
-					(this.props.matchProp !== 'value' && labelTest.indexOf(filterValue) >= 0)
-				);
-			});
-		} else {
+	filterOptions (excludeOptions, filterValue, props) {
+		const { options } = props;
+		if (typeof props.filterOptions === 'function') {
+			return props.filterOptions.call(this, options, filterValue, excludeOptions);
+		}
+
+		if (!props.filterOptions) {
 			return options;
 		}
+
+		if (props.ignoreAccents) {
+			filterValue = stripDiacritics(filterValue);
+		}
+		if (props.ignoreCase) {
+			filterValue = filterValue.toLowerCase();
+		}
+		if (excludeOptions) {
+			excludeOptions = excludeOptions.map(i => i[props.valueKey]);
+		}
+		return options.filter(option => {
+			if (excludeOptions && excludeOptions.indexOf(option[props.valueKey]) > -1) return false;
+			if (props.filterOption) return props.filterOption.call(this, option, filterValue);
+			if (!filterValue) return true;
+			let valueTest = String(option[props.valueKey]);
+			let labelTest = String(option[props.labelKey]);
+			if (props.ignoreAccents) {
+				if (props.matchProp !== 'label') valueTest = stripDiacritics(valueTest);
+				if (props.matchProp !== 'value') labelTest = stripDiacritics(labelTest);
+			}
+			if (props.ignoreCase) {
+				if (props.matchProp !== 'label') valueTest = valueTest.toLowerCase();
+				if (props.matchProp !== 'value') labelTest = labelTest.toLowerCase();
+			}
+			return props.matchPos === 'start' ? (
+				(props.matchProp !== 'label' && valueTest.substr(0, filterValue.length) === filterValue) ||
+				(props.matchProp !== 'value' && labelTest.substr(0, filterValue.length) === filterValue)
+			) : (
+				(props.matchProp !== 'label' && valueTest.indexOf(filterValue) >= 0) ||
+				(props.matchProp !== 'value' && labelTest.indexOf(filterValue) >= 0)
+			);
+		});
 	},
 
 	renderMenu (options, valueArray, focusedOption) {
@@ -643,9 +682,9 @@ const Select = React.createClass({
 	},
 
 	getFocusableOption (selectedOption) {
-		var options = this._visibleOptions;
+		const options = this.state.visibleOptions;
 		if (!options.length) return;
-		let focusedOption = this.state.focusedOption || selectedOption;
+		const focusedOption = this.state.focusedOption || selectedOption;
 		if (focusedOption && options.indexOf(focusedOption) > -1) return focusedOption;
 		for (var i = 0; i < options.length; i++) {
 			if (!options[i].disabled) return options[i];
@@ -654,7 +693,7 @@ const Select = React.createClass({
 
 	render () {
 		let valueArray = this.getValueArray();
-		let options = this._visibleOptions = this.filterOptions(this.props.multi ? valueArray : null);
+		let options = this.state.visibleOptions;
 		let isOpen = this.state.isOpen;
 		if (this.props.multi && !options.length && valueArray.length && !this.state.inputValue) isOpen = false;
 		let focusedOption = this._focusedOption = this.getFocusableOption(valueArray[0]);
