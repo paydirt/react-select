@@ -128,8 +128,9 @@ const Select = React.createClass({
 			isFocused: false,
 			isLoading: false,
 			isOpen: false,
+			isScrolledToBottom: false,
 			isPseudoFocused: false,
-			visibleOptions: this.filterOptions(valueArray, '', this.props)
+			visibleOptions: this.filterOptions(valueArray, '', this.props),
 		};
 	},
 
@@ -157,20 +158,6 @@ const Select = React.createClass({
 			nextProps.matchProps    !== this.props.matchProps    ||
 			nextProps.multi         !== this.props.multi
 		) {
-			console.log(
-				'nextProps.options       !== this.props.options',
-				nextProps.options       !== this.props.options,
-				'nextProps.filterOptions !== this.props.filterOptions',
-				nextProps.filterOptions !== this.props.filterOptions,
-				'nextProps.ignoreAccents !== this.props.ignoreAccents',
-				nextProps.ignoreAccents !== this.props.ignoreAccents,
-				'nextProps.ignoreCase    !== this.props.ignoreCase',
-				nextProps.ignoreCase    !== this.props.ignoreCase,
-				'nextProps.matchProps    !== this.props.matchProps',
-				nextProps.matchProps    !== this.props.matchProps,
-				'nextProps.multi         !== this.props.multi',
-				nextProps.multi         !== this.props.multi
-			);
 			const { inputValue } = this.state;
 			this.setState({
 				visibleOptions: this.filterOptions(valueArray, inputValue, nextProps)
@@ -376,7 +363,12 @@ const Select = React.createClass({
 		if (!this.props.onMenuScrollToBottom) return;
 		const { menu } = this.refs;
 		if (menu && menu.scrollHeight - menu.offsetHeight - menu.scrollTop === 0) {
-			this.props.onMenuScrollToBottom();
+			if (!this.state.isScrolledToBottom) {
+				this.setState({ isScrolledToBottom: true });
+				this.props.onMenuScrollToBottom();
+			}
+		} else {
+			this.setState({ isScrolledToBottom: false });
 		}
 	},
 
