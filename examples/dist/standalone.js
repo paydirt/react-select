@@ -700,7 +700,7 @@ var Select = _react2['default'].createClass({
 				isPseudoFocused: this.state.isFocused
 			});
 		}
-		this.setInputValue(value);
+		this.setInputValue('');
 	},
 
 	addValue: function addValue(value) {
