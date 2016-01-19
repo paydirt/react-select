@@ -319,18 +319,9 @@ const Select = React.createClass({
 	},
 
 	checkScrolledToBottom () {
-		console.log('CHECK!');
 		if (!this.props.onMenuScrollToBottom) return;
 		const { menu } = this.refs;
-		if (!menu) return;
-		console.log('checkScrolledToBottom', {menu});
-		console.log(
-			`menu.scrollHeight(${menu.scrollHeight}) > menu.offsetHeight(${menu.offsetHeight})`,
-			menu.scrollHeight > menu.offsetHeight,
-			`!(menu.scrollHeight - menu.offsetHeight - menu.scrollTop(${menu.scrollTop})`,
-			!(menu.scrollHeight - menu.offsetHeight - menu.scrollTop)
-		);
-		if (menu.scrollHeight > menu.offsetHeight && !(menu.scrollHeight - menu.offsetHeight - menu.scrollTop)) {
+		if (menu && menu.scrollHeight - menu.offsetHeight - menu.scrollTop === 0) {
 			this.props.onMenuScrollToBottom();
 		}
 	},
