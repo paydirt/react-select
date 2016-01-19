@@ -184,7 +184,12 @@ const Select = React.createClass({
 		if (prevProps.disabled !== this.props.disabled) {
 			this.setState({ isFocused: false });
 		}
-		this.checkScrolledToBottom();
+
+		// The number of options has changed. This may have caused the bottom of the
+		// results list to be brought into view.
+		if (prevState.visibleOptions !== this.state.visibleOptions) {
+			this.checkScrolledToBottom();
+		}
 	},
 
 	focus () {
