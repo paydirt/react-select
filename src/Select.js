@@ -318,6 +318,7 @@ const Select = React.createClass({
 	},
 
 	checkScrolledToBottom () {
+		console.log('CHECK!');
 		if (!this.props.onMenuScrollToBottom) return;
 		const { menu } = this.refs;
 		console.log('checkScrolledToBottom', {menu});
