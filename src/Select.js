@@ -289,7 +289,6 @@ const Select = React.createClass({
 	},
 
 	setInputValue (value) {
-		console.log('next value', value);
 		if (this.state.value !== value) {
 			this.props.onInputChange(this.state.inputValue);
 			this.setState({
@@ -351,7 +350,6 @@ const Select = React.createClass({
 	},
 
 	handleMenuScroll (event) {
-		console.log('handle menu scroll!!!!');
 		this.checkScrolledToBottom();
 	},
 
@@ -566,9 +564,6 @@ const Select = React.createClass({
 				/>
 			);
 		}
-		console.log('just about to render input', this);
-		console.log('this.state.inputValue', this.state.inputValue);
-		console.log('this.state.inputValue.replace', this.state.inputValue.replace);
 		return (
 			<Input
 				{...this.props.inputProps}
@@ -669,7 +664,7 @@ const Select = React.createClass({
 						option={option}
 						isSelected={isSelected}
 						ref={optionRef}
-						>
+					>
 						{renderLabel(option)}
 					</Option>
 				);
