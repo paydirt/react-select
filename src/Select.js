@@ -289,6 +289,7 @@ const Select = React.createClass({
 	},
 
 	setInputValue (value) {
+		console.log('next value', value);
 		if (this.state.value !== value) {
 			this.props.onInputChange(this.state.inputValue);
 			this.setState({
@@ -414,7 +415,7 @@ const Select = React.createClass({
 				isPseudoFocused: this.state.isFocused,
 			});
 		}
-		this.setInputValue(value);
+		this.setInputValue('');
 	},
 
 	addValue (value) {
@@ -561,10 +562,12 @@ const Select = React.createClass({
 					onBlur={this.handleInputBlur}
 					onFocus={this.handleInputFocus}
 					ref="input"
-					style={{ border: 0, width: 1, display:'inline-block' }}/>
+					style={{ border: 0, width: 1, display:'inline-block' }}
+				/>
 			);
 		}
 		console.log('just about to render input', this);
+		console.log('this.state.inputValue', this.state.inputValue);
 		console.log('this.state.inputValue.replace', this.state.inputValue.replace);
 		return (
 			<Input
