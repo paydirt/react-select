@@ -121,12 +121,15 @@ const Select = React.createClass({
 	},
 
 	getInitialState () {
+		const valueArray = this.getValueArray();
 		return {
+			valueArray,
 			inputValue: '',
 			isFocused: false,
 			isLoading: false,
 			isOpen: false,
 			isPseudoFocused: false,
+			visibleOptions: this.filterOptions(valueArray, '', this.props)
 		};
 	},
 
@@ -154,9 +157,9 @@ const Select = React.createClass({
 			nextProps.matchProps    !== this.props.matchProps    ||
 			nextProps.multi         !== this.props.multi
 		) {
-			const { inputValue } = state;
+			const { inputValue } = this.state;
 			this.setState({
-				visibleOptions: this.filterOptions(valueArray, this.state.inputValue, nextProps)
+				visibleOptions: this.filterOptions(valueArray, inputValue, nextProps)
 			});
 		}
 	},
@@ -290,7 +293,7 @@ const Select = React.createClass({
 			this.props.onInputChange(this.state.inputValue);
 			this.setState({
 				inputValue: value,
-				visibleJobs: this.filterOptions(this.state.valueArray, value, this.props)
+				visibleOptions: this.filterOptions(this.state.valueArray, value, this.props)
 			});
 		}
 	},

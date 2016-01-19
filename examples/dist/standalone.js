@@ -391,12 +391,15 @@ var Select = _react2['default'].createClass({
 	},
 
 	getInitialState: function getInitialState() {
+		var valueArray = this.getValueArray();
 		return {
+			valueArray: valueArray,
 			inputValue: '',
 			isFocused: false,
 			isLoading: false,
 			isOpen: false,
-			isPseudoFocused: false
+			isPseudoFocused: false,
+			visibleOptions: this.filterOptions(valueArray, '', this.props)
 		};
 	},
 
@@ -418,11 +421,10 @@ var Select = _react2['default'].createClass({
 
 		// If anything changes the way results are displayed, update them.
 		if (nextProps.options !== this.props.options || nextProps.filterOptions !== this.props.filterOptions || nextProps.ignoreAccents !== this.props.ignoreAccents || nextProps.ignoreCase !== this.props.ignoreCase || nextProps.matchProps !== this.props.matchProps || nextProps.multi !== this.props.multi) {
-			var _state = state;
-			var inputValue = _state.inputValue;
+			var inputValue = this.state.inputValue;
 
 			this.setState({
-				visibleOptions: this.filterOptions(valueArray, this.state.inputValue, nextProps)
+				visibleOptions: this.filterOptions(valueArray, inputValue, nextProps)
 			});
 		}
 	},
@@ -556,7 +558,7 @@ var Select = _react2['default'].createClass({
 			this.props.onInputChange(this.state.inputValue);
 			this.setState({
 				inputValue: value,
-				visibleJobs: this.filterOptions(this.state.valueArray, value, this.props)
+				visibleOptions: this.filterOptions(this.state.valueArray, value, this.props)
 			});
 		}
 	},
@@ -748,9 +750,9 @@ var Select = _react2['default'].createClass({
 	},
 
 	focusAdjacentOption: function focusAdjacentOption(dir) {
-		var _state2 = this.state;
-		var isOpen = _state2.isOpen;
-		var visibleOptions = _state2.visibleOptions;
+		var _state = this.state;
+		var isOpen = _state.isOpen;
+		var visibleOptions = _state.visibleOptions;
 
 		var options = visibleOptions.filter(function (i) {
 			return !i.disabled;
