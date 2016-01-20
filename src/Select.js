@@ -365,7 +365,7 @@ const Select = React.createClass({
 		const isScrolledToBottom = menu &&
 			menu.scrollHeight - menu.offsetHeight - menu.scrollTop === 0;
 		console.log('CHECK isScrolledToBottom', isScrolledToBottom, 'state', this.state.isScrolledToBottom);
-		if (!this.state.isScrolledToBottom !== isScrolledToBottom) {
+		if (this.state.isScrolledToBottom !== isScrolledToBottom) {
 			if (isScrolledToBottom) {
 				this.props.onMenuScrollToBottom();
 			}
