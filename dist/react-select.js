@@ -335,6 +335,7 @@ var Select = _react2['default'].createClass({
 		newOptionCreator: _react2['default'].PropTypes.func, // factory to create new options when allowCreate set
 		noResultsText: _react2['default'].PropTypes.oneOfType([_react2['default'].PropTypes.string, _react2['default'].PropTypes.node]), // placeholder displayed when there are no matching search results
 		onBlur: _react2['default'].PropTypes.func, // onBlur handler: function (event) {}
+		onBlurResetsInput: _react2['default'].PropTypes.bool, // whether input is cleared on blur
 		onChange: _react2['default'].PropTypes.func, // onChange handler: function (newValue) {}
 		onFocus: _react2['default'].PropTypes.func, // onFocus handler: function (event) {}
 		onInputChange: _react2['default'].PropTypes.func, // onInputChange handler: function (inputValue) {}
@@ -374,12 +375,14 @@ var Select = _react2['default'].createClass({
 			labelKey: 'label',
 			matchPos: 'any',
 			matchProp: 'any',
-			scrollMenuIntoView: true,
 			menuBuffer: 0,
 			multi: false,
 			noResultsText: 'No results found',
+			onBlurResetsInput: true,
 			optionComponent: _Option2['default'],
+			options: [],
 			placeholder: 'Select...',
+			scrollMenuIntoView: true,
 			searchable: true,
 			simpleValue: false,
 			valueComponent: _Value2['default'],
@@ -388,12 +391,16 @@ var Select = _react2['default'].createClass({
 	},
 
 	getInitialState: function getInitialState() {
+		var valueArray = this.getValueArray();
 		return {
+			valueArray: valueArray,
 			inputValue: '',
 			isFocused: false,
 			isLoading: false,
 			isOpen: false,
-			isPseudoFocused: false
+			isScrolledToBottom: false,
+			isPseudoFocused: false,
+			visibleOptions: this.filterOptions(valueArray, '', this.props)
 		};
 	},
 
@@ -403,10 +410,27 @@ var Select = _react2['default'].createClass({
 		}
 	},
 
-	componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
-		if (prevState.inputValue !== this.state.inputValue && this.props.onInputChange) {
-			this.props.onInputChange(this.state.inputValue);
+	componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
+
+		// If value has changed, then update the stored `valueArray`.
+		var valueArray = this.state.valueArray;
+
+		if (nextProps.value !== this.props.value) {
+			valueArray = this.getValueArray();
+			this.setState({ valueArray: valueArray });
 		}
+
+		// If anything changes the way results are displayed, update them.
+		if (nextProps.options !== this.props.options || nextProps.filterOptions !== this.props.filterOptions || nextProps.ignoreAccents !== this.props.ignoreAccents || nextProps.ignoreCase !== this.props.ignoreCase || nextProps.matchProps !== this.props.matchProps || nextProps.multi !== this.props.multi) {
+			var inputValue = this.state.inputValue;
+
+			this.setState({
+				visibleOptions: this.filterOptions(valueArray, inputValue, nextProps)
+			});
+		}
+	},
+
+	componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
 		if (this._scrollToFocusedOptionOnUpdate && this.refs.focused && this.refs.menu) {
 			this._scrollToFocusedOptionOnUpdate = false;
 			var focusedDOM = _reactDom2['default'].findDOMNode(this.refs.focused);
@@ -485,9 +509,9 @@ var Select = _react2['default'].createClass({
 	closeMenu: function closeMenu() {
 		this.setState({
 			isOpen: false,
-			isPseudoFocused: this.state.isFocused && !this.props.multi,
-			inputValue: ''
+			isPseudoFocused: this.state.isFocused && !this.props.multi
 		});
+		this.setInputValue('');
 	},
 
 	handleInputFocus: function handleInputFocus(event) {
@@ -510,20 +534,33 @@ var Select = _react2['default'].createClass({
 		if (this.props.onBlur) {
 			this.props.onBlur(event);
 		}
-		this.setState({
-			inputValue: '',
+		var onBlurredState = {
 			isFocused: false,
 			isOpen: false,
 			isPseudoFocused: false
-		});
+		};
+		if (this.props.onBlurResetsInput) {
+			onBlurredState.inputValue = '';
+		}
+		this.setState(onBlurredState);
 	},
 
 	handleInputChange: function handleInputChange(event) {
 		this.setState({
 			isOpen: true,
-			isPseudoFocused: false,
-			inputValue: event.target.value
+			isPseudoFocused: false
 		});
+		this.setInputValue(event.target.value);
+	},
+
+	setInputValue: function setInputValue(value) {
+		if (this.state.value !== value) {
+			this.props.onInputChange(this.state.inputValue);
+			this.setState({
+				inputValue: value,
+				visibleOptions: this.filterOptions(this.state.valueArray, value, this.props)
+			});
+		}
 	},
 
 	handleKeyDown: function handleKeyDown(event) {
@@ -598,26 +635,36 @@ var Select = _react2['default'].createClass({
 	},
 
 	getValueArray: function getValueArray() {
-		var value = this.props.value;
-		if (this.props.multi) {
-			if (typeof value === 'string') value = value.split(this.props.delimiter);
-			if (!Array.isArray(value)) {
-				if (value === null || value === undefined) return [];
-				value = [value];
+		var _props = this.props;
+		var value = _props.value;
+		var delimeter = _props.delimeter;
+		var multi = _props.multi;
+
+		if (value == null) {
+			return [];
+		}
+
+		if (multi) {
+			var values = null;
+			if (typeof value === 'string') {
+				values = value.split(delimeter);
+			} else if (!Array.isArray(value)) {
+				values = [value];
 			}
-			return value.map(this.expandValue).filter(function (i) {
+			return values.map(this.expandValue).filter(function (i) {
 				return i;
 			});
 		}
+
 		var expandedValue = this.expandValue(value);
 		return expandedValue ? [expandedValue] : [];
 	},
 
 	expandValue: function expandValue(value) {
 		if (typeof value !== 'string' && typeof value !== 'number') return value;
-		var _props = this.props;
-		var options = _props.options;
-		var valueKey = _props.valueKey;
+		var _props2 = this.props;
+		var options = _props2.options;
+		var valueKey = _props2.valueKey;
 
 		if (!options) return;
 		for (var i = 0; i < options.length; i++) {
@@ -640,26 +687,25 @@ var Select = _react2['default'].createClass({
 	selectValue: function selectValue(value) {
 		if (this.props.multi) {
 			this.addValue(value);
-			this.setState({
-				inputValue: ''
-			});
 		} else {
 			this.setValue(value);
 			this.setState({
 				isOpen: false,
-				inputValue: '',
 				isPseudoFocused: this.state.isFocused
 			});
 		}
+		this.setInputValue('');
 	},
 
 	addValue: function addValue(value) {
-		var valueArray = this.getValueArray();
+		var valueArray = this.state.valueArray;
+
 		this.setValue(valueArray.concat(value));
 	},
 
 	popValue: function popValue() {
-		var valueArray = this.getValueArray();
+		var valueArray = this.state.valueArray;
+
 		if (!valueArray.length) return;
 		if (valueArray[valueArray.length - 1].clearableValue === false) return;
 		this.setValue(valueArray.slice(0, valueArray.length - 1));
@@ -682,10 +728,8 @@ var Select = _react2['default'].createClass({
 		event.stopPropagation();
 		event.preventDefault();
 		this.setValue(null);
-		this.setState({
-			isOpen: false,
-			inputValue: ''
-		}, this.focus);
+		this.setInputValue('');
+		this.setState({ isOpen: false }, this.focus);
 	},
 
 	focusOption: function focusOption(option) {
@@ -703,16 +747,20 @@ var Select = _react2['default'].createClass({
 	},
 
 	focusAdjacentOption: function focusAdjacentOption(dir) {
-		var options = this._visibleOptions.filter(function (i) {
+		var _state = this.state;
+		var isOpen = _state.isOpen;
+		var visibleOptions = _state.visibleOptions;
+
+		var options = visibleOptions.filter(function (i) {
 			return !i.disabled;
 		});
 		this._scrollToFocusedOptionOnUpdate = true;
-		if (!this.state.isOpen) {
+		if (!isOpen) {
 			this.setState({
 				isOpen: true,
-				inputValue: '',
 				focusedOption: this._focusedOption || options[dir === 'next' ? 0 : options.length - 1]
 			});
+			this.setInputValue('');
 			return;
 		}
 		if (!options.length) return;
@@ -806,7 +854,8 @@ var Select = _react2['default'].createClass({
 				onBlur: this.handleInputBlur,
 				onFocus: this.handleInputFocus,
 				ref: 'input',
-				style: { border: 0, width: 1, display: 'inline-block' } }));
+				style: { border: 0, width: 1, display: 'inline-block' }
+			}));
 		}
 		return _react2['default'].createElement(_reactInputAutosize2['default'], _extends({}, this.props.inputProps, {
 			className: className,
@@ -837,42 +886,46 @@ var Select = _react2['default'].createClass({
 		);
 	},
 
-	filterOptions: function filterOptions(excludeOptions) {
+	filterOptions: function filterOptions(excludeOptions, filterValue, props) {
 		var _this3 = this;
 
-		var filterValue = this.state.inputValue;
-		var options = this.props.options || [];
-		if (typeof this.props.filterOptions === 'function') {
-			return this.props.filterOptions.call(this, options, filterValue, excludeOptions);
-		} else if (this.props.filterOptions) {
-			if (this.props.ignoreAccents) {
-				filterValue = (0, _utilsStripDiacritics2['default'])(filterValue);
-			}
-			if (this.props.ignoreCase) {
-				filterValue = filterValue.toLowerCase();
-			}
-			if (excludeOptions) excludeOptions = excludeOptions.map(function (i) {
-				return i[_this3.props.valueKey];
-			});
-			return options.filter(function (option) {
-				if (excludeOptions && excludeOptions.indexOf(option[_this3.props.valueKey]) > -1) return false;
-				if (_this3.props.filterOption) return _this3.props.filterOption.call(_this3, option, filterValue);
-				if (!filterValue) return true;
-				var valueTest = String(option[_this3.props.valueKey]);
-				var labelTest = String(option[_this3.props.labelKey]);
-				if (_this3.props.ignoreAccents) {
-					if (_this3.props.matchProp !== 'label') valueTest = (0, _utilsStripDiacritics2['default'])(valueTest);
-					if (_this3.props.matchProp !== 'value') labelTest = (0, _utilsStripDiacritics2['default'])(labelTest);
-				}
-				if (_this3.props.ignoreCase) {
-					if (_this3.props.matchProp !== 'label') valueTest = valueTest.toLowerCase();
-					if (_this3.props.matchProp !== 'value') labelTest = labelTest.toLowerCase();
-				}
-				return _this3.props.matchPos === 'start' ? _this3.props.matchProp !== 'label' && valueTest.substr(0, filterValue.length) === filterValue || _this3.props.matchProp !== 'value' && labelTest.substr(0, filterValue.length) === filterValue : _this3.props.matchProp !== 'label' && valueTest.indexOf(filterValue) >= 0 || _this3.props.matchProp !== 'value' && labelTest.indexOf(filterValue) >= 0;
-			});
-		} else {
+		var options = props.options;
+
+		if (typeof props.filterOptions === 'function') {
+			return props.filterOptions.call(this, options, filterValue, excludeOptions);
+		}
+
+		if (!props.filterOptions) {
 			return options;
 		}
+
+		if (props.ignoreAccents) {
+			filterValue = (0, _utilsStripDiacritics2['default'])(filterValue);
+		}
+		if (props.ignoreCase) {
+			filterValue = filterValue.toLowerCase();
+		}
+		if (excludeOptions) {
+			excludeOptions = excludeOptions.map(function (i) {
+				return i[props.valueKey];
+			});
+		}
+		return options.filter(function (option) {
+			if (excludeOptions && excludeOptions.indexOf(option[props.valueKey]) > -1) return false;
+			if (props.filterOption) return props.filterOption.call(_this3, option, filterValue);
+			if (!filterValue) return true;
+			var valueTest = String(option[props.valueKey]);
+			var labelTest = String(option[props.labelKey]);
+			if (props.ignoreAccents) {
+				if (props.matchProp !== 'label') valueTest = (0, _utilsStripDiacritics2['default'])(valueTest);
+				if (props.matchProp !== 'value') labelTest = (0, _utilsStripDiacritics2['default'])(labelTest);
+			}
+			if (props.ignoreCase) {
+				if (props.matchProp !== 'label') valueTest = valueTest.toLowerCase();
+				if (props.matchProp !== 'value') labelTest = labelTest.toLowerCase();
+			}
+			return props.matchPos === 'start' ? props.matchProp !== 'label' && valueTest.substr(0, filterValue.length) === filterValue || props.matchProp !== 'value' && labelTest.substr(0, filterValue.length) === filterValue : props.matchProp !== 'label' && valueTest.indexOf(filterValue) >= 0 || props.matchProp !== 'value' && labelTest.indexOf(filterValue) >= 0;
+		});
 	},
 
 	renderMenu: function renderMenu(options, valueArray, focusedOption) {
@@ -933,7 +986,7 @@ var Select = _react2['default'].createClass({
 	},
 
 	getFocusableOption: function getFocusableOption(selectedOption) {
-		var options = this._visibleOptions;
+		var options = this.state.visibleOptions;
 		if (!options.length) return;
 		var focusedOption = this.state.focusedOption || selectedOption;
 		if (focusedOption && options.indexOf(focusedOption) > -1) return focusedOption;
@@ -943,8 +996,9 @@ var Select = _react2['default'].createClass({
 	},
 
 	render: function render() {
-		var valueArray = this.getValueArray();
-		var options = this._visibleOptions = this.filterOptions(this.props.multi ? valueArray : null);
+		var valueArray = this.state.valueArray;
+
+		var options = this.state.visibleOptions;
 		var isOpen = this.state.isOpen;
 		if (this.props.multi && !options.length && valueArray.length && !this.state.inputValue) isOpen = false;
 		var focusedOption = this._focusedOption = this.getFocusableOption(valueArray[0]);
