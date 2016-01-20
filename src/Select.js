@@ -139,7 +139,7 @@ const Select = React.createClass({
 			this.focus();
 		}
 	},
-
+	
 	componentWillReceiveProps (nextProps) {
 
 		// If value has changed, then update the stored `valueArray`.
@@ -362,13 +362,13 @@ const Select = React.createClass({
 	checkScrolledToBottom () {
 		if (!this.props.onMenuScrollToBottom) return;
 		const { menu } = this.refs;
-		if (menu && menu.scrollHeight - menu.offsetHeight - menu.scrollTop === 0) {
-			if (!this.state.isScrolledToBottom) {
-				this.setState({ isScrolledToBottom: true });
+		const isScrolledToBottm = menu &&
+			menu.scrollHeight - menu.offsetHeight - menu.scrollTop === 0;
+		if (!this.state.isScrolledToBottom !== isScrolledToBottm) {
+			if (isScrolledToBottm) {
 				this.props.onMenuScrollToBottom();
 			}
-		} else {
-			this.setState({ isScrolledToBottom: false });
+			this.setState({ isScrolledToBottm });
 		}
 	},
 
@@ -409,7 +409,9 @@ const Select = React.createClass({
 	setValue (value) {
 		if (!this.props.onChange) return;
 		if (this.props.simpleValue && value) {
-			value = this.props.multi ? value.map(i => i[this.props.valueKey]).join(this.props.delimiter) : value[this.props.valueKey];
+			value = this.props.multi
+				? value.map(i => i[this.props.valueKey]).join(this.props.delimiter)
+				: value[this.props.valueKey];
 		}
 		this.props.onChange(value);
 	},
