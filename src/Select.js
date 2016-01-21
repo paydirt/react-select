@@ -434,8 +434,9 @@ const Select = React.createClass({
 	},
 
 	handleValueClick (option, event) {
-		if (!this.props.onValueClick) return;
-		this.props.onValueClick(option, event);
+		if (this.props.onValueClick) {
+			this.props.onValueClick(option, event);
+		}
 	},
 
 	handleMenuScroll (event) {
@@ -586,14 +587,13 @@ const Select = React.createClass({
 		if (!valueArray.length) {
 			return !this.state.inputValue ? <div className="Select-placeholder">{this.props.placeholder}</div> : null;
 		}
-		let onClick = this.props.onValueClick ? this.handleValueClick : null;
 		if (this.props.multi) {
 			return valueArray.map((value, i) => {
 				return (
 					<ValueComponent
 						disabled={this.props.disabled || value.clearableValue === false}
 						key={`value-${i}-${value[this.props.valueKey]}`}
-						onClick={onClick}
+						onClick={this.handleValueClick}
 						onRemove={this.removeValue}
 						value={value}
 						>
@@ -606,7 +606,7 @@ const Select = React.createClass({
 			return (
 				<ValueComponent
 					disabled={this.props.disabled}
-					onClick={onClick}
+					onClick={this.handleValueClick}
 					value={valueArray[0]}
 					>
 					{renderLabel(valueArray[0])}
